@@ -65,7 +65,7 @@ def computeHistogram(pixel_array, image_width, image_height, nr_bins):
 
 
 def main():
-    filename = "krakow.png"
+    filename = "numberplate1.png"
 
     (image_width, image_height, px_array_r, px_array_g, px_array_b) = readRGBImageToSeparatePixelArrays(filename)
 
