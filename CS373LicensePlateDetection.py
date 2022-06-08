@@ -359,7 +359,7 @@ def main():
     SHOW_DEBUG_FIGURES = True
 
     # this is the default input image filename
-    input_filename = "numberplate1.png"
+    input_filename = "numberplate5.png"
 
     if command_line_arguments != []:
         input_filename = command_line_arguments[0]
@@ -378,7 +378,6 @@ def main():
     # we read in the png file, and receive three pixel arrays for red, green and blue components, respectively
     # each pixel array contains 8 bit integer values between 0 and 255 encoding the color values
     (image_width, image_height, px_array_r, px_array_g, px_array_b) = readRGBImageToSeparatePixelArrays(input_filename)
-
     # setup the plots for intermediate results in a figure
     fig1, axs1 = pyplot.subplots(2, 2)
     axs1[0, 0].set_title('Input red channel of image')
@@ -391,7 +390,9 @@ def main():
 
     # STUDENT IMPLEMENTATION here
 
-    px_array = px_array_r
+    greyscale_pixel_array = computeRGBToGreyscale(px_array_r, px_array_g, px_array_b, image_width, image_height)
+    contrast_stretched_pixel_array = scaleTo0And255AndQuantize(greyscale_pixel_array, image_width, image_height)
+    px_array = contrast_stretched_pixel_array
 
     # compute a dummy bounding box centered in the middle of the input image, and with as size of half of width and height
     center_x = image_width / 2.0
@@ -407,7 +408,7 @@ def main():
 
     # Draw a bounding box as a rectangle into the input image
     axs1[1, 1].set_title('Final image of detection')
-    axs1[1, 1].imshow(px_array, cmap='gray')
+    axs1[1, 1].imshow(px_array,cmap='gray')
     rect = Rectangle((bbox_min_x, bbox_min_y), bbox_max_x - bbox_min_x, bbox_max_y - bbox_min_y, linewidth=1,
                      edgecolor='g', facecolor='none')
     axs1[1, 1].add_patch(rect)
@@ -417,6 +418,7 @@ def main():
     # write the output image into output_filename, using the matplotlib savefig method
     extent = axs1[1, 1].get_window_extent().transformed(fig1.dpi_scale_trans.inverted())
     pyplot.savefig(output_filename, bbox_inches=extent, dpi=600)
+
 
     if SHOW_DEBUG_FIGURES:
         # plot the current figure
