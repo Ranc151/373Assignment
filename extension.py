@@ -1,15 +1,14 @@
 import math
 import sys
 from pathlib import Path
-
+import base64
+import requests
 from matplotlib import pyplot
 from matplotlib.patches import Rectangle
 import pytesseract
-
-from PIL import Image
 # import our basic, light-weight png reader library
+from PIL import Image
 import imageIO.png
-
 # this function reads an RGB color png file and returns width, height, as well as pixel arrays for r,g,b
 def readRGBImageToSeparatePixelArrays(input_filename):
 
@@ -328,13 +327,20 @@ def main():
             SHOW_DEBUG_FIGURES = False
         license_plate_path = Path("license_plate_images")
         output_path = Path("output_images")
+        license_plate_clarity_path = Path("license_plate_clarity_images")
+        # if the output folder did not exit, create it
         if not output_path.exists():
             # create output directory
             output_path.mkdir(parents=True, exist_ok=True)
         if not license_plate_path.exists():
             license_plate_path.mkdir(parents=True, exist_ok=True)
+        if not license_plate_clarity_path.exists():
+            license_plate_clarity_path.mkdir(parents=True, exist_ok=True)
+
         output_filename = output_path / Path(input_filename.replace(".png", "_output.png"))
         license_plate_filename = license_plate_path / Path(input_filename.replace(".png", "_license_plate.png"))
+
+
         if len(command_line_arguments) == 2:
             output_filename = Path(command_line_arguments[1])
             license_plate_filename = Path(command_line_arguments[1])
@@ -419,15 +425,37 @@ def main():
         extent1 = axs1[1, 1].get_window_extent().transformed(fig1.dpi_scale_trans.inverted())
         pyplot.savefig(license_plate_filename, bbox_inches=extent1, dpi=70)
 
-
         '''if SHOW_DEBUG_FIGURES:
             # plot the current figure
             pyplot.show()'''
 
-
-
     for i in range(1,7):
-        image = Image.open("license_plate_images/numberplate"+str(i)+"_license_plate.png")
+        # extension part make image more clarity
+        # change the png image to jpg image
+        im1 = Image.open(r'license_plate_images/numberplate' + str(i) + '_license_plate.png')
+        im1 = im1.convert('RGB')
+        im1.save(r'license_plate_images/numberplate' + str(i) + '_license_plate.jpg')
+
+        # get access to the api
+        host = 'https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=cz3vI9KtNDTiDYPjw5fedGcN&client_secret=WqLcW6gzXYYTh8YEIdhLuBPaq4GniEoG'
+        response = requests.get(host)
+        access_token = response.json()['access_token']
+        request_url = "https://aip.baidubce.com/rest/2.0/image-process/v1/image_definition_enhance"
+        # encode image to base64
+        f = open("license_plate_images/numberplate" + str(i) + "_license_plate.jpg", "rb")
+        img = base64.b64encode(f.read())
+        # access api
+        params = {"image": img}
+        request_url = request_url + "?access_token=" + access_token
+        headers = {'content-type': 'application/x-www-form-urlencoded'}
+        response = requests.post(request_url, data=params, headers=headers)
+        imgdata = base64.b64decode(response.json()['image'])
+        # get the response
+        file = open("license_plate_clarity_images/numberplate" + str(i) + "_license_plate.jpg", 'wb')
+        file.write(imgdata)
+        file.close()
+    for i in range(1,7):
+        image = Image.open("license_plate_clarity_images/numberplate"+str(i)+"_license_plate.jpg")
 
         code = pytesseract.image_to_string(image,lang="eng",config="--psm 7")
         code = code.strip("\n")
